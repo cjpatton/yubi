@@ -13,13 +13,13 @@ OATH HOTP~\cite{rfc4226} and U2F~\cite{u2f}.
 YubiKeys also provide authentication out-of-the-box via the \emph{Yubico OTP}
 (``one-time-password'') protocol. It involves the \emph{YubiCloud}, a web
 service provided by Yubico. When the user plugs her token into a computer's USB
-port and presses a button on the token, it types out a string just as a keybaord
+port and presses a button, the token types out a string just as a keybaord
 would. The 44-character string, called a \emph{one-time password} (OTP), looks
 something like this:
 \[
   \texttt{\textcolor{gray}{ccccccflivli}fcdgrtgkhcjdfjcbljlhvehufurhtjlg}
 \]
-This string is typically entered into a form on a web page; when it is received, the web
+This string is typically entered into a form on a web page; when received, the web
 server sends the OTP to YubiCloud for verification.
 %
 The first 12 characters denote the tokens's \emph{public serial identifier}. The
@@ -49,15 +49,19 @@ better security than their symmetric-key counterparts because they do not
 involve shared secrets.
 %
 Nevertheless, there are a number of reasons to favor symmetric-key techniques,
-and Yubico OTP in particular. For one, U2F requires client-side support, and as
-of this writing, the only major browser that supports it is Google Chrome.
+and Yubico OTP in particular. First of all, U2F requires client-side support, and as
+of this writing, only Opera, Firefox, and Chrome support its. Another reason to
+favor symmetric key solutions is that the hardware requirements are much
+smaller.
 %
-\cpnote{Another advantage of symmetric key is that the hardware tokens can be a
-lot simpler. We don't need ANY randomness for our protocols. Does U2F need
-randomness?}
-\cpnote{Could we make the argument that symmetric key is orders of magnitude
-faster, therefore better than public key for this setting? But YubiKeys already
-do a variety of public key operations, so I'm not convinced.}
+\if{0}{
+  \cpnote{Another advantage of symmetric key is that the hardware tokens can be a
+  lot simpler. We don't need ANY randomness for our protocols. Does U2F need
+  randomness?}
+  \cpnote{Could we make the argument that symmetric key is orders of magnitude
+  faster, therefore better than public key for this setting? But YubiKeys already
+  do a variety of public key operations, so I'm not convinced.}
+}\fi
 
 The problem of having a shared secret may be partially overcome by using
 a \emph{hardware security module} (HSM) to manage the state associated with each
@@ -90,9 +94,9 @@ capture the idea that the protocol is ``initiated'' by the client physically
 interacting with the token.
 
 We find no inherent flaws in the protocol when each YubiKey is used to
-authenticate to \emph{at most one server}. In fact, we are able to prove under
-standard assumptions that the probability that an adversary is able to forge an
-OTP to the authority is birthday bounded.
+authenticate to \emph{at most one server}. In fact, we prove under standard
+assumptions about AES that the probability that an adversary is able to forge an OTP to
+the authority is roughly birthday bounded.
 %
 However, if a YubiKey is used with more than one server, than Yubico OTP
 \emph{does not suffice for security in the Bellare-Rogaway model}.
@@ -100,13 +104,6 @@ However, if a YubiKey is used with more than one server, than Yubico OTP
 In particular, an OTP intended for authenticating the client to one server can
 be intercepted by the adversary and rerouted to another service that accepts the
 same token as a credential.
-%
-This is a severe restriction, one that might the reader to consider a weaker
-adversary. n particular, the Bellare-Rogaway model does not reflect the
-difficulty of intercepting an OTP and attempting to use it for a different
-session before the legitimate session completes. But this is a difficult thing
-to formalize, and security would depend crucially on the latency between
-communicants. Hence, we opt for for a stronger security posture.
 
 \heading{OTP1.}
 On the positive side, we suggest a simple modification to the protocol that
@@ -116,42 +113,52 @@ authentication, allowing us to cryptographically bind the service to the OTP.
 %
 The protocol requires no modification to the token itself, and adds no
 additional overhead (computational, communication, or bandwidth). However, it
-does require some client-side support. This is unavoidable, since in order to
+does require a small amount of client-side code. This is unavoidable, since in order to
 bind the OTP to the service, it is necessary to send the token a message. First
 the client's system must be capable of talking to smart cards. (We find that
 both Ubuntu 16.04 and MacOS X Sierra do so without any additional
-configuration.) \cpnote{I'm not sure about Windows.} Second, it requires the
-installation of a small amount of code.
+configuration; we didn't test on Windows.)
+%
+\if{0}{
+  \cpnote{I'm not sure about Windows.}
+}\fi
+%
+Second, it requires the installation of a small amount of code.
 
 \heading{OTP2.}
 We also take the liberty of rethinking the design of the YubiKey altogether.
-Ours results so far point to a new modality for token-based authentication.
-Either the token itself or the OTPs it emits must be bound to the service
-requesting authentication. The latter is preferable, since it allows us to use a
-single token for many services.
 %
-\emph{The mechanism that makes this possible also permits applications beyond
-authentication.}
+Ours results so far point to a fundamental axiom for token-based authentication:
+either the OTP or the token itself must be bound to the service requesting
+authentication. The latter is preferable, since it allows us to use a single
+token for many services.
+%
+In practice, this means that the token will require some client-side support.
+While we're at it, why restrict ourselves to OTPs?
 %
 We propose a modified token that supports a number \emph{modes of operation},
 including simple OTP-based authentication, request-bounded OTP-based
 authentication (the implicit goal of OTP1), message authentication, and
 encryption.
 %
-We consider a few concrete applications. For example, we show a way to provide
+We also consider a few concrete applications. For example, we show a way to provide
 two-factor authentication secure against dictionary attacks on the client's
 password with the same round complexity as the simple OTP protocol and with very
 little computational overhead. We also suggest an extension to TLS that provides
 client authentication via hardware tokens.
-
+%
 Our proposal will require modifying the YubiKey firmware at a minimum. We
 suspect, however, that it can be implemented without modifying the hardware.
 
+\heading{Organization of this report.}
+Section 2 presents related work.
+%
+Section 3 describes the tokens (YubiKey and YubiHSM) and their functionalities.
+%
+Section 4 describes the OTP protocol and its security. Section 5 presents OTP1,
+and Section 6 presents OTP2 and applications.
 
-\cpnote{Organization of the rest of the write up: Section 2 describes the tokens
-(YubiKey and YubiHSM) and their functionalities. Section 3 describes the
-OTP protocol and its security. Section 4 presents OTP1, and Section 5 presents
-OTP2 and applications.}
 
-\subsection{Related work}
+
+\section{Background and prior work on YubiKeys}
 \input{related}
