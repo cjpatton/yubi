@@ -1,0 +1,309 @@
+% header.tex
+%
+% Formatting and common macros for crypto papers. Include this first.
+\usepackage{graphics}
+\usepackage[toc,page]{appendix}
+\usepackage[font={small}]{caption}
+\usepackage{hyperref}
+\usepackage{xspace}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{parskip}
+\usepackage{framed}
+\usepackage{times}
+
+\hypersetup{
+    colorlinks,%
+    citecolor=black,%
+    filecolor=black,%
+    linkcolor=black,%
+    urlcolor=black
+}
+
+\def\dashuline{\bgroup
+  \ifdim\ULdepth=\maxdimen  % Set depth based on font, if not set already
+	  \settodepth\ULdepth{(j}\advance\ULdepth.4pt\fi
+  \markoverwith{\kern.15em
+	\vtop{\kern\ULdepth \hrule width .3em}%
+	\kern.15em}\ULon}
+
+\newcounter{foot}
+\setcounter{foot}{1}
+\setlength\parindent{2em}
+
+% Editorial
+\renewcommand{\paragraph}[1]{\noindent\textbf{#1}}
+\newcommand{\heading}[1]{\paragraph{#1}}
+\newcommand{\ala}{\textit{a la}\xspace}
+\newcommand{\etal}{et al.\xspace}
+\newcommand{\apriori}{\textit{a priori}\xspace}
+\newcommand{\viceversa}{\textit{vice versa}\xspace}
+
+% Fonts for various types
+\newcommand{\notionfont}[1]{\textnormal{#1}\xspace}
+\newcommand{\varfont}[1]{\textit{#1}}
+\newcommand{\flagfont}[1]{\mathsf{#1}}
+\newcommand{\vectorfont}[1]{\vec{#1}}
+\newcommand{\oraclefont}[1]{\cryptofont{#1}}
+\newcommand{\schemefont}[1]{\textsc{#1}\xspace}
+\newcommand{\prinfont}[1]{\textsf{#1}\xspace}
+\newcommand{\procfont}[1]{\mathsf{#1}}
+\newcommand{\algorithmfont}[1]{\mathcal{#1}}
+\newcommand{\adversaryfont}[1]{\mathit{#1}}
+\newcommand{\setfont}[1]{\mathcal{#1}}
+\newcommand{\cryptofont}[1]{\mathbf{#1}\hspace{0.5pt}}
+\newcommand{\capgreekfont}[1]{\mathrm{#1}}
+
+% Crypto functions
+\newcommand{\Exp}[1]{\cryptofont{Exp}^{{\tiny \MakeLowercase{#1}}}}
+\newcommand{\Adv}[1]{\cryptofont{Adv}^{{\tiny \MakeLowercase{#1}}}}
+
+% Math
+\DeclareMathAlphabet\mathbfcal{OMS}{cmsy}{b}{n}
+\newcommand{\dqed}{\hfill$\Diamond$}
+% FIXME What's the deal with this command and nested parans? This and also
+% substr
+\def\ceil(#1){\lceil #1 \rceil}
+\def\floor(#1){\lfloor #1 \rfloor}
+\newcommand{\goesto}{{\rightarrow}}
+
+% - Sets
+\newcommand{\setify}[1]{\procfont{set}\left(#1\right)}
+\newcommand{\setlen}[1]{|#1|}
+\newcommand{\multisetlen}[1]{\|#1\|}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\bits}{\{0,1\}}
+\newcommand*\bigunion{\bigcup}
+\newcommand*\bigintersection{\bigcap}
+\newcommand*\union{\cup}
+\newcommand{\multiunion}{\uplus}
+\newcommand*\intersection{\cap}
+\newcommand*\cross{\times}
+\newcommand*\by{\cross}
+\newcommand{\getsr}{\mathrel{\leftarrow\mkern-14mu\leftarrow}}
+%\newcommand{\getsr}{\xleftarrow{\text{\tiny{\$}}}}
+%\newcommand{\getsr}{{\:{\leftarrow{\hspace*{-3pt}\raisebox{.75pt}{$\scriptscriptstyle\$$}}}\:}}
+\newcommand{\setop}[1]{\mathsf{set}(#1)} %^ \procfont
+\def\str(#1){\procfont{set}\left(#1\right)}
+\def\bydef{\stackrel{\rm def}{=}}
+
+% - String operations
+\newcommand{\emptystr}{\varepsilon}
+\newcommand{\cat}{\, \| \,}
+\def\str(#1){\langle #1 \rangle}
+\def\substr(#1,#2,#3){#1[#2\mbox{\,:\,}#3]}
+\def\toint{\procfont{int}}
+\def\tostr{\procfont{str}}
+\def\byte(#1){[#1]}
+
+% - Boolean operators
+\newcommand*\AND{\wedge}
+\newcommand*\OR{\vee}
+\newcommand*\NOT{\neg}
+\newcommand*\IMPLIES{\implies}
+\newcommand*\XOR{\mathbin{\oplus}}
+\newcommand*\xor{\XOR}
+
+% - Asymptotics
+\newcommand{\negl}{\procfont{negl}}
+\newcommand{\poly}{\procfont{poly}}
+
+% - Probablity
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Prob}[1]{\Pr\hspace{-1pt}\left[\,#1\,\right]}
+\newcommand{\given}{\mid}
+
+% Games
+\newcommand{\halt}{\bot}
+\newcommand{\game}{\cryptofont{G}}
+\newcommand{\G}{\game}
+\newcommand{\foreach}[3]{$\text{for }#1 \gets #2\text{ to }#3\text{ do}$}
+\newcommand{\tab}{\hspace*{10pt}}
+\newcommand{\outputs}{=}
+\newcommand{\outs}{\outputs}
+\newcommand{\sets}{\,\mathrm{sets}\,}
+\newcommand{\bad}{\varfont{bad}}
+\newcommand{\true}{1}
+\newcommand{\false}{0}
+\newcommand{\invalid}{\bot}
+\newcommand{\exception}{\invalid}
+\newcommand{\experimentv}[1]{\underline{#1}}
+\newcommand{\oraclev}[1]{\underline{{oracle} #1}:}
+\newcommand{\adversaryv}[1]{\underline{{adv.} #1}:}
+\newcommand{\algorithmv}[1]{\underline{{alg.} #1}:}
+
+% - Inline comment
+\definecolor{CommentColor}{RGB}{125,175,230}
+\newcommand{\comment}[1]{\textcolor{CommentColor}{\,\textbf{\#}\,#1}}
+
+\newcommand{\gamesfontsize}{\footnotesize}
+\newcommand{\gamespadleft}{\hskip 1pt}
+\newcommand{\gamespad}{\hskip 4pt}
+
+% - One game
+\newcommand{\oneCol}[2]{
+\begin{center}
+        \framebox{
+        \begin{tabular}{c@{\hspace*{.4em}}}
+        \begin{minipage}[t]{#1\textwidth}\gamesfontsize #2 \end{minipage}
+        \end{tabular}
+        }
+\end{center}
+}
+
+\newcommand{\twoCols}[3]{
+  \makebox[\textwidth][c]{
+    \begin{tabular}{|@{\gamespadleft}l@{\gamespad}|@{}@{\gamespad}l@{\gamespad}|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+\newcommand{\twoColsUnbalanced}[4]{
+  \makebox[\textwidth][c]{
+    \begin{tabular}{|@{\gamespadleft}l@{\gamespad}|@{}@{\gamespad}l@{\gamespad}|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#2\textwidth}\gamesfontsize
+      #4 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+\newcommand{\twoColsNoDivide}[3]{
+  \makebox[\textwidth][c]{
+    \begin{tabular}{|@{\gamespadleft}l@{\gamespad}@{}@{\gamespad}l@{\gamespad}|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+\newcommand{\twoColsNoDivideUnbalanced}[4]{
+  \makebox[\textwidth][c]{
+    \begin{tabular}{|@{\gamespadleft}l@{\gamespad}@{}@{\gamespad}l@{\gamespad}|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#2\textwidth}\gamesfontsize
+      #4 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+\newcommand{\twoColsTwoRows}[5]{
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\gamespadleft}l@{\gamespad}|@{}@{\gamespad}l@{\gamespad}|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #4 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #5 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+\newcommand{\threeCols}[4]{
+  \makebox[\textwidth][c]{
+    \begin{tabular}{|@{\gamespadleft}l@{\gamespad}|@{}@{\gamespad}l@{\gamespad}|@{}@{\gamespad}l@{\gamespad}|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #4 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+\newcommand{\twoColsThreeRows}[7]{
+  \makebox[\textwidth][c]{
+  \begin{tabular}{|@{\gamespadleft}l@{\gamespad}|@{}@{\gamespad}l@{\gamespad}|}
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #2 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #3 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #4 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #5 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+    \rule{0pt}{1\normalbaselineskip}
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+      #6 \vspace{6pt}
+    \end{minipage} &
+    \begin{minipage}[t]{#1\textwidth}\gamesfontsize
+       #7 \vspace{6pt}
+    \end{minipage} \\
+    \hline
+  \end{tabular}
+  }
+}
+
+% Notes
+\newcounter{notectr}[section]
+\newcommand{\getnotectr}{\stepcounter{notectr}\thesection.\thenotectr}
+\newcommand{\basenote}[4]{{
+  \textrm{\textcolor{#1}{(\getnotectr: #2 #3: #4)}}
+}}
+
+% Uncomment to mute notes.
+%\renewcommand{\basenote}[4]{\ignorespaces}
+
+\newcommand{\note}[3]{\basenote{#1}{#2}{says}{#3}}
+\newcommand{\todo}[3]{\basenote{#1}{#2}{to-do}{#3}}
+
+\newcommand{\ignore}[1]{\if{0}#1\fi}

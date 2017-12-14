@@ -1,0 +1,103 @@
+% related.tex
+%
+%
+\label{sec:related}
+
+Despite their many pitfalls, passwords have long been understood as the most
+practical trade-off between security and usability for authenticating users of
+computer systems.
+%
+Early adopters of password-based authentication recognized the need to store
+passwords securely~\cite{morris1979password}, yet no manner of storage is
+adequate if the password can easily be guessed. This has lead system
+admnistrators to enforce policies for selecting passwords (for example, adding
+special characters, or requiring a minimum length) and periodically changing
+them.  In their landmark user study, Adams and Sasse~\cite{adams1999users} point
+out that, paradoxically, these policies \emph{adversely} affect security,
+because they drive users to choose weak passwords, or even to write them down.
+In light of this finding, the usability of any technique to enhance
+password-based authentication has become a first-class concern.
+
+A number of approaches to supplement (or supplant) passwords have been proposed,
+each having unique barriers to adoption. Bonneau et al.~\cite{bonneau2012quest}
+point out that \emph{deployability} of the mechanism is a critical factor.
+%
+In recent years, two-factor authentication (2FA) has emerged as an approach with
+a reasonable trade-off between security, usability, and deployability.
+Typically the second factor is realized using soemthing in possession of the
+user, such as a cell phone or a dedicated hardware token.
+%
+The simplest protocol works as follows. The server associates a unique secret to
+each client. When the client requests a log in, the server uses the secret and
+current time to generate a short sequence (6-8) of digits, which it sends to the
+client's phone. Both this sequence and the password are needed to log in. Each
+``one-time password'' (OTP) is valid only for a short time (typically 30
+seconds). While this system is easy to deploy, it suffers from a major security
+flaw; the OTP is transmitted via SMS, an insecure channel with a number of known
+vulnerabilities~\cite{reaves2016sending}. (For example, vulnerabilities in
+SS7~\cite{engel2008locating} have been exploited to intercept OTPs in 2FA
+systems used for bank accounts~\cite{schwachstelle}.)
+
+An improvement came with a pair of protocols by OATH, the Initiative for Open
+Authentication. The first, TOTP~\cite{rfc6238}, works as above, except the
+client's phone (or token) shares a key with the server. This change affectively
+removes the SMS attack vector.
+%
+TOTP enjoys wide adoption; a prominent example is the Google Authenticator app
+for Android, iOS and other platforms~\cite{googleauth}. The second,
+HOTP~\cite{rfc4226}, is a variant of TOTP that uses a counter instead of a
+timestamp.
+%
+An early hardware token employing a protocol similar to TOTP was RSA's
+SecurID~\cite{securid}.
+%
+Yubico OTP is similar to HOTP, in that it generates one-time passwords using a
+stateful counter; however, it has several advantages from a security standpoint.
+(For one, Yubico OTPs are much longer, and so harder to forge.)
+
+Each of these protocols, including Yubico OTP, has an important drawback; they
+require that the authenticating party keeps a secret. Indeed, in 2011, RSA
+SecureID's server was breached, leading to the exposure of a number of tokens'
+secrets~\cite{kaminsky2011securid}. This lead Yubico to develop a low-cost,
+hardware-security module (the YubiHSM) in order to simplify the deployment of a
+secure authentication server.
+%
+Of courese, public-key cryptography affords the opportunity to avoid this
+drawback altogether. The FIDO Allience, in collaboration with a number of
+industry leaders, has developed the universal two-factor (U2F)
+protocol~\cite{u2f}, which usess a private key stored on a hardware token; the
+corresponding pulbic key is stored on the server.
+%
+YubiKeys support this more sophisticated protocol in addition to Yubico OTP. The
+latter has the distinct advantage of being easier to deploy; U2F requires the
+web browser to support it, since it involves a couple rounds of communications
+between the token and the server. Yubico OTP requires no browser support.
+
+Due to its simplicity, Yubico OTP remains an important industry player. As such,
+it has received a respectable amount of attention in academia.
+%
+The first formal tratment of the full protocol was provided by K\"unnemann and
+Steel~\cite{kuennemann2012yubisecure}; however, their result is limited in a
+fundamental way. They work in a restricted adversarial model, called the
+\emph{Dolev-Yao} model~\cite{herzog2005computational}. Roughly speaking, they
+prove that no Dolev-Yao adversary seeing an unbounded number of OTPs can recover
+the underlying secret. This is a weaker security property than we generally hope
+for. In particular, the stronger \emph{Bellare-Rogaway}
+model~\cite{bellare1993entity} directly captures an adversary's ability to forge
+the users's credentials.  From this perspective, the exact security of Yubico
+OTP remains open.
+
+K\"unneman and Steel also pointed out attacks on the YubiHSM that, with a
+particular configuration, allows an attacker on the authority's system to
+decrypt sate associated with YubiKeys.
+%
+YubiKey has also been shown to be susceptible to side-channel attacks. Oswald et
+al.~\cite{oswald2013side-channel} use minimally-invasive power analysis to
+recover the token's secret key for generating OTPs.
+
+\ignore{
+\begin{cool}
+\cpnote{Maybe cite
+\url{http://ieeexplore.ieee.org/document/4625610/?arnumber=4625610}}
+\end{cool}
+}

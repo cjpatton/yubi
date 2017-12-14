@@ -1,0 +1,99 @@
+%
+\def\camready{0}
+\ifnum\camready=0
+  \makeatletter
+  \let\@twosidetrue\@twosidefalse
+  \let\@mparswitchtrue\@mparswitchfalse
+  \makeatother
+\fi
+
+\documentclass{build/llncs}
+\usepackage{color,soul}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\usepackage{times}
+\input{build/header}
+\input{macros}
+
+\ifnum\camready=0
+  \usepackage[letterpaper,margin=0.75in]{geometry}
+\fi
+
+\ifnum\camready=0
+  \usepackage{hyperref}
+  \hypersetup{
+    colorlinks=true,
+    allcolors={black},
+    citecolor={darkgreen},
+    urlcolor={darkgreen},
+    pdfborder={0 0 0},
+  }
+\fi
+
+
+\date{\today}
+\title{Building a better YubiKey}
+\author{Christopher Patton}
+\institute{University of Florida}
+
+\setcounter{tocdepth}{2}
+
+\pagestyle{plain}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  The aim of \emph{two-factor authentication} is to tie a user's identity to
+  something they \emph{know} (their password) and something they \emph{have} so
+  that the attacker requires both in order to impersonate them.
+  %
+  The latter is often realized using a ``hardware token,'' a physical device
+  that interacts with the server to authenticate the user.
+  %
+  \emph{YubiKey}, the flagship product of Yubico, is a low-cost, USB-enabled
+  hardware token capable of supporting a variety of industry standard protocols.
+  %
+  Each token also supports \emph{Yubico OTP} (``one-time password''), a simple
+  protocol based on symmetric-key cryptography that is designed to work
+  out-of-the-box without the need to install code on the client.
+  %
+  But in terms of usability, this ease-of-deployment comes at a significant
+  cost: we find that a YubiKey can only be used to authenticate to one service
+  securely.
+  %
+  This work considers means by which a YubiKey may be used securely with many
+  services, while keeping deployment complexity at a minimum.
+  %
+  Going further, we propose a fundamental redesign of the protocol that would
+  make YubiKeys useful for a variety of applications beyond OTP-based
+  authentication.
+  \begin{keywords}
+    guy
+  \end{keywords}
+\end{abstract}
+
+\section{Introduction}
+\input{intro}
+
+\section{YubiKey and YubiHSM}
+\input{tokens}
+
+\section{The Yubico OTP protocol}
+\input{otp}
+
+\section{OTP1}
+\input{otp1}
+
+\section{OTP2}
+\input{otp2}
+
+\ifnum\camready=0
+ \bibliographystyle{alpha}
+ \else
+\bibliographystyle{build/splncs_srt}
+\fi
+\bibliography{yubi}
+
+\end{document}

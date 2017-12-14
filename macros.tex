@@ -1,0 +1,32 @@
+% macros.tex
+%
+% Macros for this paper. (Include build/headers.tex, then this.)
+
+\newcommand{\client}{\mathcal{C}}
+\newcommand{\server}{\mathcal{S}}
+\newcommand{\auth}{\mathcal{A}}
+\newcommand{\key}{\schemefont{key}}
+\newcommand{\hsm}{\schemefont{hsm}}
+\newcommand{\mac}{\schemefont{mac}}
+\newcommand{\sctr}{\varfont{session\_ctr}}
+\newcommand{\tlow}{\varfont{time\_low}}
+\newcommand{\thigh}{\varfont{time\_high}}
+\newcommand{\tctr}{\varfont{token\_ctr}}
+\newcommand{\checksum}{\schemefont{sum}}
+\newcommand{\crc}{\varfont{crc}}
+\newcommand{\otp}{\varfont{otp}}
+
+\newcommand{\stringer}[1]{{\footnotesize\color{gray}\textrm{``#1''}}}
+\def\str(#1){\tostr(#1)}
+\def\byte(#1){[#1]}
+
+% Variables
+\newcommand{\ct}{\varfont{ct}}
+
+% Authors' comments.
+\definecolor{darkgreen}{RGB}{50,127,0}
+\newcommand{\cpnote}[1]{\note{darkgreen}{Chris}{#1}}
+\newcommand{\cptodo}[1]{\todo{red}{Chris}{#1}}
+\newcommand{\tsnote}[1]{\note{blue}{Tom}{#1}}
+\newcommand{\review}[2]{\note{red}{Reviewer #1}{#2}}
+\newcommand{\anytodo}[1]{\todo{red}{\ignorespaces}{#1}}

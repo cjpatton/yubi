@@ -1,0 +1,421 @@
+\newcommand{\tsprp}{\widetilde{\notionfont{SPRP}}}
+\newcommand{\calT}{\mathcal{T}}
+\newcommand{\ENCO}{\oraclefont{E}}
+\newcommand{\DECO}{\oraclefont{E}^{-1}}
+Co-opting the challenge-response mode as described above is a viable way to
+use YubiKeys with multiple servers, but there is certainly room for improvement.
+%
+One way to improve security is to modify the frame data structure so that the
+payload is longer. The only essential component is the 3-byte counter, leaving
+13 bytes for the payload.
+%
+However, as long as we're modifying the YubiKey, we can do much better. In the
+following, we present a revised OTP protocol, called \emph{OTP2}, that uses a
+\emph{tweakable blockcipher} as a building block. Our design may be used in
+multiple \emph{modes of operation}, supporting a wide variety of applications
+beyond OTP-based authentication.
+
+\newcommand{\otpsec}{\notionfont{IND\$\mbox{-}OTP}}
+\newcommand{\OTPO}{\oraclefont{OTP}}
+\newcommand{\mode}{\varfont{mode}}
+\newcommand{\OTP}{\schemefont{otp}}
+\newcommand{\INIT}{\schemefont{init}}
+\newcommand{\calM}{\setfont{M}}
+\begin{figure}
+  \newcommand{\fmtframe}{\schemefont{frame}}
+  \twoColsUnbalanced{0.38}{0.58}
+  {
+    \underline{$\Exp{\tsprp}_{E,b}(\advD)$}\\[2pt]
+      $K \getsr \calK$;
+      $b' \getsr \advD^{\,\ENCO,\DECO}$\\
+      return $b'$
+    \\[6pt]
+    \underline{$\ENCO(T, X)$}\\[2pt]
+      if $b=1$ then return $E_K(T, X)$\\
+      if $\pi_T = \bot$ then $\pi_T \getsr \Perm(n)$\\
+      return $\pi_T(X)$
+    \\[14pt]
+    \underline{$\DECO(T, Y)$}\\[2pt]
+      if $b=1$ then return $E^{-1}_K(T, Y)$\\
+      if $\pi_T = \bot$ then $\pi_T \getsr \Perm(n)$\\
+      return $\pi^{-1}_T(Y)$
+  }
+  {
+    \underline{$\Exp{\otpsec}_{E,b}(\advD)$}\\[2pt]
+       $K \getsr \calK$; $\ct \gets 0$; $\calE \gets \emptyset$;
+       $b' \getsr \advD^{\,\OTPO,\OTPO^{-1}}$\\
+       return $b'$
+    \\[6pt]
+    \underline{$\OTPO(T, \mode, m)$}\\[2pt]
+      $\ct \gets \ct + 1$;
+      $X \gets \fmtframe(\mode, \ct, m)$
+        \comment{Outputs an OTP2 frame.}\\
+      if $b=1$ then $Y \gets E_K(T, X)$\\
+      else $Y \getsr \bits^n$\\
+      $\calE \gets \calE \union \{(T, X, Y)\}$; return $Y$
+    \\[6pt]
+    \underline{$\OTPO^{-1}(T,Y)$}\\[2pt]
+      if $(\exists X)\,(T, X, Y) \in \calE$ then return $X$\\
+      if $b=1$ then $X \gets E^{-1}_K(T, Y)$\\
+      else $X \getsr \bits^n$\\
+      $\calE \gets \calE \union \{(T, X, Y)\}$; return $X$
+  }
+  \caption{\textbf{Left:} $\tsprp$ of \textbf{Right:} \otpsec security of
+  tweakable blockciphers.}
+  \label{fig2}
+  \vspace{6pt}
+  \hrule
+\end{figure}
+A \emph{tweakable blockcipher}~\cite{liskov2011tweakable} is a deterministic algorithm
+$E:\calK\cross\calT\cross\bits^n\to\bits^n$, where $n$ is a positive integer, $\calT$ is a set,
+and $\calK$ is a finite set such that for each $K\in\calK$ and $T\in\calT$,
+function $E_K(T,\cdot)$ is a bijection, with $E_K^{-1}(T,\cdot)$ denoting its
+inverse.
+%
+The goal is that each tweak induces a permutation that looks random and
+independent from the permutations induced by other tweaks. Security may be
+formalized by the game defined in the left-hand panel of Figure~\ref{fig2}.
+
+A number of efficient, secure constructions of tweakable blockciphers are known.
+The simplest construction, due to Liskov, Rivest, and
+Wagner~\cite{liskov2011tweakable} combines a hash function and a blockcipher.
+Let $h : \calT \to \bits^n$ be a function sampled from a family of
+$\epsilon$-almost-xor-universal hash functions. This means that for every
+$T,T'\in\calT$, where $T\ne T'$, and $\Delta\in\bits^n$, the probability that $h(T)\xor h(T') =
+\Delta$ is at most $\epsilon$.
+%
+(There are several well-known families of hash functions having this property.)
+Let $E:\calK\cross\bits^n\to\bits^n$ be a standard blockcipher.  The LRW
+tweakable blockcipher is defined by $\widetilde{E}_K(T,X) = E_K(X \xor \Delta)
+\xor \Delta$, where $\Delta = h(T)$.
+%
+XORing $h(T)$ with the input ensures that, with high probability, the inputs of
+the blockcipher are different for different tweaks. The result is that
+blockciphers with different tweaks look independent to a computationally-bounded
+adversary.
+
+\heading{The data frame.}
+The protocol will use a tweakable blockcipher with arbitrary-length tweaks.
+(Many such constructions are known, cf.~\cite{liskov2011tweakable,landescher2012tweak}.)
+%
+Namely, let $\calK$ be a finite set, $\calT=\bits^*$, $n\in\N$ be a multiple
+of~$8$, $N=n/8$, and $E:\calK\cross\calT\cross\bits^n\to\bits^n$ be a tweakable
+blockcipher. The OTP2 frame is much simpler than the OTP frame, having only
+three components. It is designed to support multiple ``modes of operation'' used
+for protocols beyond one-time-password-based authentication. (We will
+discuss these shortly.)
+\begin{itemize}
+  \item integer $X.\mode$ ($X[0]$) --- Specifies the mode of operation for the
+    frame. This is used to signal to the authority which protocol is being
+    executed.
+  \item integer $X.\ct$ ($\substr(X,1,4)$) --- The 3-byte (24-bit) counter. This
+    has the same semantics as $(\tctr,\sctr)$ in the OTP protocol; it is
+    incremented each time the token is engaged.
+  \item string $X.m$ ($\substr(X,4,)$) --- The payload, comprised of $N-4$
+    bytes.
+\end{itemize}
+The semantics of the payload and tweak are determined by the mode of operation; accordingly,
+whether the frame is deemed authentic depends on the mode. However, its freshness is
+determined by the $X.\ct$ as before, and the authority must deem a non-fresh
+frame to be invalid.
+%
+The format of the enciphered OTP2 is much the same as before, except that it
+depends on a tweak. Namely, it is computed as $\otp = \str(I \cat E_K(T,X))$,
+where~$T$ is the tweak and~$I$ is the identity of the token.
+
+\newcommand{\fancykey}{\schemefont{key2}}
+\heading{The token.}
+%
+The OTP2 hardware token will only do one thing: encipher data frames.  The token
+takes as input the tweak~$T$, an integer $\mode$, and the payload~$m$.  When
+activated, it first checks that $|m| = N-4$ and $\mode$ is a valid mode. It
+then increments the internal counter, computes the data frame~$X$, computes $Y
+\gets E_K(T,X)$, and outputs $Y$.
+%
+The token may be used in two ways. The first provides the no-client-side-code
+functionality of YubiKeys. Though it is inherently insecure when used for
+multiple services, we feel it should be supported. The second mode supports the
+full suite of OTP2-based protocols. The token has the following interfaces:
+\begin{itemize}
+  \item $(\otp, \sigma') \gets \fancykey(\stringer{otp0}, \sigma)$. Outputs a
+    fully-formed OTP2 in $\mode=0$.
+  \item $(Y, \sigma') \gets \fancykey(\stringer{otp}, T, \mode, m, \sigma)$.
+    Outputs an enciphered OTP2 data frame.
+  \item $I \gets \fancykey(\stringer{id}, \sigma)$. Outputs the public identity
+    of the token.
+\end{itemize}
+%
+Each of these ``calls'' use the same state, so that $(\otp, \sigma') \gets
+\fancykey(\stringer{otp}, \sigma)$ is equivalent to running
+\[
+  (Y, \sigma) \gets \fancykey(\stringer{otp}, \emptystr, 0, \byte(0)^{N-4},  \sigma);
+  I \gets \fancykey(\stringer{id}, \sigma)
+\]
+then computing $\otp \gets \str(I \cat Y)$. (See the OTP0 mode below.)
+
+\textit{Physical considerations.}
+An interface is \emph{activated} either by the arrival of some inputs or by the
+client physically interacting with it.
+%
+The \stringer{otp} interface is activated as follows. When a payload is waiting,
+the token starts blinking. Once the user \emph{engages} the token by pressing
+the button, the payload is processed and an enciphered frame is output. Not every
+mode of operation requires engagement.
+%
+The \stringer{otp0} interface is activated when there is no payload waiting and
+when the client engages the token.
+%
+The \stringer{id} may be activated without engagement.
+%
+\cpnote{Should the token somehow enable ``cancelation?''}
+
+\subsection{Modes of operation}
+We describe four modes of operation for the token.
+%
+\cpnote{This is the most interesting part from a cryptographic perspective. All
+of this looks ``OK'' to me, but each definitely needs a rigorous analysis.}
+
+\heading{OTP0 (\textnormal{$\mode=0$}).}
+%
+The simple, one-time-password mode. The payload consists of an all-zero byte
+string $\byte(0)^{N-4}$ and the tweak is $\emptystr$. Upon receipt, the
+authority deciphers the frame, checks that the payload is equal to
+$\byte(0)^{N-4}$, and checks that the counter is fresh. This is the
+``no-client-side-code'' mode that can be invoked via the token's \stringer{otp0}
+interface. \emph{It must be used with only one service}, and must be engaged by
+the client.
+
+\heading{OTP (\textnormal{$\mode=1$}).}
+%
+The \emph{request-bounded, one-time-password} mode. Provides authentication of the
+client for a particular request. The request might be to login to a service, or
+for authorization to access a resource. The resource is encoded by the tweak.
+The payload is specified by the protocol, but it is a static value known to the
+client and authority. Upon receipt, the authority decrypts and checks that the
+payload matches the string it expects.
+%
+Requires engagement.
+
+\heading{Integrity (\textnormal{$\mode=2$}).} The \emph{integrity} mode. This
+can be used to authenticate (i.e. MAC) a message. The payload is
+$\byte(0)^{N-4}$ and the tweak is the message.
+%
+Requires engagement.
+
+The next two modes are used to implement \emph{authenticated encryption with
+associated data}. Such a scheme provides privacy and authenticity of a
+message~$M$ and authenticity for associated data~$A$. Normally the syntax
+requires an explicit nonce, but our scheme will not require a nonce and take
+advantage of the token's stateful counter. It resembles the OCB mode of
+operation, but has some significant differences.
+%
+The string~$M\cat\byte(1)\cat\byte(0)^p$, where $p$ is the smallest, positive
+integer such that $|M| + 1 + p \equiv 0 \pmod{N-4}$, is divided into
+($N-4$)-byte blocks $(M_1, M_2, \ldots, M_\ell)$.  These are XORed together to
+get the checksum~$R$.
+%
+Each block is processed in order in $\mode=3$ (defined below) to get $(C_1, C_2,
+\ldots, C_\ell)$. These blocks are XORed together to get~$S$. Then
+$R \xor \substr(S,,N-4)$ is processed in $\mode=4$ to get~$T$.  Finally, the
+ciphertext $C_1 \cat C_2 \cat \cdots C_\ell \cat T$ is transmitted to the
+authority.
+%
+The authority decrypts each ciphertext block as it arrives, checking that the
+counter value is larger for each block. (The counters need not be contiguous.)
+The last block is used to determine if the message is authentic. The authority
+must output the message only if it is authentic. The adversary deciphers the
+block (using~$A$ as the tweak), and checks that that the payload matches the
+checksum of the ciphertext and message blocks.
+
+\heading{Transport (\textnormal{$\mode=3$}).}
+%
+Processes a message block in transport mode. The payload is the message
+block~$M_i$ and the tweak is~$\emptystr$. This mode \emph{does not} require
+engagement.
+
+\heading{Transport Finish (\textnormal{$\mode=4$}).}
+%
+Process the checksum of the message in transport mode. The payload is the
+truncated checksum $\substr({(R\xor S)},4,)$ and the tweak is the associated
+data~$A$. Requires engagement.
+%
+\if{0}{
+  \cpnote{This is the major departure from OCB. In that mode, $A$ is processed
+  in PMAC-fashion and added to the tag, and the tweak is derived from the nonce
+  and a counter (starting at 0). We don't need to tweak in this way because we
+  stuff a counter into the BC call.}
+}\fi
+
+\subsection{Security}
+The OTP2 is a building block for four modes of operation: simple authentication,
+request-bounded authentication, integrity, and transport. Each mode has a
+different security goal, and the hope is that the token is a powerful enough
+tool to achieve them.
+%
+Of course, we need a proof of security for each mode. To that end, we have
+formulated a notion of security that models the token's operation on the client's
+side and the processing of the output on the authority's side.
+%
+The \otpsec game (right-hand side of Figure~\ref{fig2}) is associated to a
+tweakable blockcipher, a bit~$b$, and an adversary~$\advD$. The adversary is
+asked to distinguish the output of the token from a random string given
+given access to an oracle for the token's \stringer{otp} interface.  On input of
+a tweak, mode, and payload, if $b=1$, then the oracle increments a counter,
+constructs and enciphers a frame using the provided tweak, and returns the
+output. If $b=0$, it outputs a randomly chosen string. It is also given an
+oracle for deciphering frames. If $b=1$, then it outputs the deciphered frame;
+otherwise it returns a random string.
+
+Intuitively, security in the \otpsec sense implies that the OTP output of the
+token may be treated as a uniform random string. On the other hand, if the
+authority is asked to decipher an OTP not output by the token --- or perhaps the
+OTP is valid, but the query involves the wrong tweak --- then the deciphered
+frame will look random. We conjecture that these properties suffice to prove
+security of each of the modes of operation.
+%
+\cpnote{This might be harder to prove than I think. AFAIK, OTP2 constitutes a
+\textbf{new security model}. The OTP2 is being used for different purposes
+simultaneously. I haven't seen any other crypto primitive used quite as flexibly
+as this.}
+%
+However, we first need to prove the following:
+
+\heading{Conjecture 1.} \emph{The $\tsprp$ security of tweakable
+blockcipher~$E$ implies the \otpsec security of~$E$.}
+
+\noindent
+We suspect the proof follows from a similar argument used in Lemma~1.
+If so, we should get roughly birthday-bound security.
+
+
+\subsection{Applications}
+\label{sec:apps}
+We present a few interesting applications in order to motivate the deployment of
+OTP2.
+
+\newcommand{\id}{\varfont{id}}
+\newcommand{\pw}{\varfont{pw}}
+\heading{Two-factor authentication secure against dictionary attacks.}
+%
+\emph{OTP mode} can be used to avoid sending a password hash in the clear via the
+following protocol. Let $\hash$ be a cryptographic hash function with output
+length of $N-4$ bytes. The client~$\client$ has a token~$\fancykey$ managed by
+authority~$\auth$ and a username-password pair $(\id, \pw)$. The
+server~$\server$ knows the identity~$I$ of~$\fancykey$ and $H = \hash(\id \cat
+\pw)$.
+%
+\begin{enumerate}
+  \item $\client$ choses a random, $(N-4)$-byte string~$R$.
+    %
+    It then computes $(Y, \sigma) \gets \fancykey(\stringer{otp}, 1, R
+    \xor H, J, \sigma)$, where~$J$ is the identity of the service~$\server$.
+    It then computes $I \gets \fancykey(\stringer{id}, \sigma)$, $\otp \gets
+    \str(I \cat Y)$, and sends $(R, \otp, \id)$ to~$\server$.
+
+  \item $\server$ looks up the hash~$H$ associated with~$\id$, then computes $V
+    = H\xor R$ and sends $(J, V, \otp)$ to~$\auth$.
+
+  \item $\auth$ decodes $\str(I \cat Y) \gets \otp$, looks up the key~$K$ and
+    counter~$\ct$ associated with~$I$, then computes $X \gets E^{-1}_K(J, Y)$.
+    %
+    It checks if~$X.\ct > \ct$ and $X.m = V$: if so, it lets $\ct \gets X.\ct$
+    and sends $(J, \otp, \stringer{ok})$ to~$\server$; otherwise it sends $(J,
+    \otp, \stringer{invalid})$ to~$\server$.
+
+  \item If~$\auth$'s response says \stringer{ok}, then accept; otherwise reject.
+\end{enumerate}
+Each message sent between $\server$ and $\auth$ is encrypted and authenticated
+using their shared key. (For example, they may use TLS.) This differs from
+the OTP (Section~\ref{sec:otp}) and OTP1 (Sectoin~\ref{sec:otp1}) protocols,
+which only require these messages to be authenticated.
+
+This protocol has the same round complexity as OTP and OTP1 and incurs only a
+bit of extra overhead.
+%
+A key advantage of this protocol is that~$H$ is never sent in the clear, which
+prevents dictionary attacks on the password by~$\auth$.  Dictionary attacks by a
+network adversary are prevented by using a secure channel (i.e. authenticated
+encryption) between~$\server$ and~$\auth$.
+
+\heading{Fine-grained resource authorization.}
+%
+Typically, web services have a \emph{course-grained} model of authorization,
+meaning once you've provided credentials and logged in, you needn't provide your
+credentials again until you've logged out.
+%
+There are notable exceptions, however. For example, GitHub requires you to
+provide your credentials before deleting a repository. To take another example,
+Amazon sometimes requires you to re-enter the last four digits of your credit
+card number in order to make a purchase. These exceptions motivate a need for
+\emph{finer-grained} authorization for access to extra sensitive resources or
+to take certain actions.
+%
+This is a perfect application for \emph{OTP mode}.\footnote{Imagine it: you're
+about to delete a GitHub repo, and the website prompts you to stick in your
+token. Then a message pops up: ``Are you sure you want to delete this?'' Click
+``yes'': ``Engage your token to confirm.''} The OTP1 protocol might be used for
+the same purpose. However, the tiny, 6-byte payload used their means collisions
+are quite likely.
+
+\heading{Client authentication extension to TLS.}
+%
+In a typical TLS handshake, the server is authenticated to the client, but not
+the other way around. This leaves open the possibility of a man-in-the-middle.
+This looks like a job for \emph{integrity mode!}
+%
+Suppose the client and server are using ephemeral Diffie-Hellman. The
+ClientHello message contains the client's key share $g^a$. The client computes
+$(T, \sigma) \gets \fancykey(\stringer{otp}, 2, g^a, \sigma)$, then $I \gets
+\fancykey(\stringer{id}, \sigma)$, and sends~$\str(I \cat T)$ along with the
+ClientHello.
+%
+The server forwards $g^a$ and $\str(I \cat T)$ to the authority, who computes $X \gets
+E^{-1}_K(g^a, T)$ and checks that $X$ is fresh and $X.m = \byte(0)^{N-4}$. If
+so, it updates its state and tells the server to accept.
+
+\heading{Key rotation.}
+%
+The \emph{transport mode} provides a secure channel between the client and the
+authority. One way this can be used is to securely update the token's
+configuration. Currently, the only way to update the shared secret is to
+generate a fresh secret and physically copy it to the client and authority's
+systems. The transport mode could be used to \emph{wrap} a key generated on the
+client's system, then transmit the wrapped key to the authority. The same
+technique can be used to update the counter, the public identity, and any other
+state that needs to be shared between the token and authority.
+
+\subsection{Concrete instantiations of the tweakable blockcipher}
+
+Our requirements for the underlying primitive are an infinite tweak space (i.e.,
+$\calT=\bits^*$) and a reasonable block size (e.g., 16 bytes). There are a
+number of constructions that would suit our needs, but we need to carefully
+consider the constraints of the token's hardware platform. YubiKeys already
+support AES-128 and HMAC-SHA1. It should be easy to show, under appropriate
+assumptions, that
+\[
+  \widetilde{E}_{K\cat K'}(T, X) = E_K(X \xor \Delta) \xor \Delta,
+  \text{where}\, \Delta = \substr({H_{K'}(T)},,16)
+\]
+is $\tsprp$ secure, where~$E$ denotes AES-128 and~$H$ denotes HMAC-SHA1. The
+assumptions are that~$E$ is an \sprp and $H$ is a PRF. This is essentially the
+LRW construction; the $\epsilon$-almost-xor-universality is provided by the PRF
+security of~$H$.
+
+Since we're using algorithms already supported by the token, we suspect that
+OTP2 can be deployed without modifying the YubiKey hardware; only changes to the
+firmware should be required. One potential issue is that the secret key is now
+twice as long, since $|K \cat K'| = 32$. (HMAC-SHA1 calls for a
+16-byte key.)
+%
+\cpnote{It depends on how the key is stored, I suppose. If it's impossible store
+larger keys, then perhaps we can design a new TBC that uses only a 16-byte key.}
+%
+It's also worth noting that HMAC-SHA1 should not be considered a secure
+PRF, since SHA1 is known to be broken. (We have found a collision!) Therefore,
+it may be worth replacing SHA1 with SHA256.
+
+\textit{Precomputing~$\Delta$.}
+%
+The transport and OTP0 modes use $\emptystr$ as the tweak. The value of
+$\Delta_\emptystr = \substr({H_{K'}(\emptystr)},,16)$ might be precomputed and
+stored on the token, thus avoiding an HMAC-SHA1 evaluation for these modes.

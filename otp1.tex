@@ -1,0 +1,109 @@
+\label{sec:otp1}
+In this section, we consider means by which a YubiKey can be used securely for
+multiple services. The goal will be to bind the OTP to the service requesting
+authentication.
+%
+We first recall that each YubiKey has two slots, which both can be configured to
+run Yubico OTP with different services. However, we will aim for a protocol that
+can be used with any number of services.
+%
+Unfortunately, any such solution will involve \emph{sending a message} to the
+token, which means we must forfeit a major advantage of Yubico OTP: the protocol
+requires minimal client-side support, since the client's system must only be
+capbble of recognizing a USB keybaord. Our solution will require the client to
+install a small amount of code,\footnote{See
+\url{https://github.com/Yubico/python-yubico}.} and their system must be capable
+of talking to smart cards.\footnote{Both Ubuntu 16.04 LTS and Mac OS 10.12.6
+(``Sierra'') are able to talk to the YubiKey without issue.}
+
+\heading{OTP challenge-response.}
+In Section~\ref{sec:tokens} we briefly described the \emph{challenge-response}
+mode of the YubiKey. In more detail, the server sends to the client a short
+(6-byte), random challenge. The client forwards this to their YubiKey, which
+transforms it into a data frame with the challenge as its payload. It outputs
+the encrypted data frame, which is forwarded to the server, then to the
+authority. The authority decrypts and checks that it is fresh and that the
+checksum bits match; if so, it sends the payload to the server. Finally, the
+server checks that the payload matches the challenge.
+
+\newcommand{\hash}{\schemefont{hash}}
+The challenge-response protocol above is sufficient to mitigate rerouting
+attacks as long as no two servers choose the same challenge. (Assuming these are
+chosen randomly, a collision is unlikely.) However, it adds an extra 0.5 round
+trip and requires the server to maintain a bit of extra state.
+%
+We suggest the following alternative.
+
+\heading{The revised protocol.} The client \emph{hashes the identity of
+the service}, and uses the first 6 bytes of the hash as the challenge. Let
+$\hash$ be a cryptographic hash function whose output is at least~6 bytes in
+length. The
+new protocol is as follows:
+\begin{enumerate}
+  \item Given $J$, the identity of~$\server$, the client $\client$ computes $m
+    \gets \substr({\hash(J)},6,)$ and executes $(Y, \sigma') \gets
+    \key(\stringer{chal}, m, \sigma)$. It then transmits $\otp=\str(I\cat Y)$ to
+    $\server$.
+    %
+    \cpnote{Not sure how to obtain~$I$ from the YubiKey.}
+
+  \item $\server$ computes $H = \mac_{K'}(J \cat N \cat \otp)$ and sends $(H, J,
+    N, \otp)$ to $\auth$, where~$N$ is a nonce and~$J$ is $\server$'s identity.
+
+  \item $\auth$ looks up the key $K'$ associated with~$J$ and checks that $H =
+    \mac_{K'}(J \cat N \cat \otp)$. If so, it proceeds to step~4; otherwise it
+    halts.
+
+  \item $\auth$ decodes $\str(I\cat Y) \gets \otp$ and looks up the key~$K$ and
+    data frame~$T$ associated with~$I$.
+    %
+    It computes $X \gets E_K^{-1}(Y)$, checks that $\otp$ is authentic (that $X.m =
+    \substr({\hash(J)},6,))$ and $\checksum(\substr(X,,14))=X.\crc$) and fresh (that $X.\ct > T.\ct$).
+    %
+    If both conditions hold, it lets $T \gets X$.  It lets~$R$ denote the result
+    of check. Finally, it computes $H' = \mac_{K'}(N \cat R \cat \otp)$, and sends $(H',
+    N, R, \otp)$ to $\server$.
+
+  \item $\server$ checks that $H' = \mac_{K'}(N \cat R \cat \otp)$ and that the
+    response~$R$ says that $\otp$ is authentic and fresh. If so, it accepts;
+    otherwise it rejects.
+\end{enumerate}
+Initialization is the same as in the standard Yubico OTP protocol
+(Section~\ref{sec:otp}), except that~$\client$ is also given the identity~$J$
+of~$\server$.
+
+\subsection{Security}
+%
+The changes to the protocol are minimal, and so we expect it to have the same
+security properties as Yubico OTP.
+%
+In addition, it offers a defense against OTP rerouting. Suppose that $J$ and
+$J^*$ are the identity of two servers and $\substr({\hash(J)},6,) \ne
+\substr({\hash(J^*)},6,)$. Then an OTP generated in a session for $(i, j, k)$
+will not be deemed authentic in a session for $(i, j^*, k)$.
+
+This begs the question: how likely is it that the payloads for two server
+identities collide? We \emph{cannot} bound this probability using the collision
+resistance of $\hash$, since we need to truncate its output quite a bit in order
+to fit it in the frame. (For example, SHA1 outputs 20 bytes and SHA256 outputs
+32, whereas the payload is just 6 bytes.)
+%
+In the random-oracle model, we can argue that the probability is at most
+$s^2/2^{48}$, where~$s$ is the number of services. But even this bound is
+significantly weaker than what we would hope for. In particular, it is much
+weaker than the bound in Lemma~1.
+
+Still, this change to the protocol is a viable option for allowing deployed
+YubiKeys to be used with multiple servers securely. But what if we're willing to
+modify the tokens? In the next section, we propose a way to significantly
+improve security. We suspect our proposal will require changing the firmware,
+but not the YubiKey hardware.
+
+\textit{No YubiHSM support for this protocol.}
+Note that the YubiHSM 1.6 does not support OTP challenge-response.  Recall that
+in the Yubico OTP protocol, the expectation is that the payload remain private.
+But in the challenge-response protocol, it is necessary that the payload be sent
+to the server. In our protocol, the authority can check that the payload matches
+what is expected, but this does not appear to be supported.
+%
+\cpnote{What about YubiHSM 2?}

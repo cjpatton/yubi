@@ -1,0 +1,157 @@
+A crucial point of failure in virtually all web services is the user's
+password. Passwords that are easy to remember are often easy to guess, a reality
+which universities, companies, and governments alike must cope with.
+%
+Today, token-based, two-factor authentication is, arguably, the most viable way to improve
+security of users' credentials.
+%
+A number of companies manufacture \emph{hardware tokens} for this purpose. One
+of the leaders in this industry is Yubico, whose flagship product, the
+\emph{YubiKey}, supports a variety of industry standard protocols, including
+OATH HOTP~\cite{rfc4226} and U2F~\cite{u2f}.
+
+YubiKeys also provide authentication out-of-the-box via the \emph{Yubico OTP}
+(``one-time-password'') protocol. It involves the \emph{YubiCloud}, a web
+service provided by Yubico. When the user plugs her token into a computer's USB
+port and presses a button on the token, it types out a string just as a keybaord
+would. The 44-character string, called a \emph{one-time password} (OTP), looks
+something like this:
+\[
+  \texttt{\textcolor{gray}{ccccccflivli}fcdgrtgkhcjdfjcbljlhvehufurhtjlg}
+\]
+This string is typically entered into a form on a web page; when it is received, the web
+server sends the OTP to YubiCloud for verification.
+%
+The first 12 characters denote the tokens's \emph{public serial identifier}. The
+remaining 32 characters encode a 128-bit string, which is the AES encryption
+(under a key~$K$ stored on the token) of, among other things, the token's
+\emph{private serial identifier} and a \emph{counter}, which gets incremented
+each time the button is pushed.
+%
+YubiCloud verifies the authenticity of the OTP by decrypting it and checking (1)
+that the private serial identifier matches its records and (2) that the OTP is
+fresh, meaning the counter is larger than the last authentic OTP it received.
+YubiCloud looks up the decryption key~$K$ using the public serial identifier
+that was transmitted in the clear.
+
+Yubico OTP has a few key advantages over competing protocols.
+%
+First, it works without installing any software on the client's system. The
+token presents itself as a USB keyboard and hence can be used with every major
+operating system without additional configuration.
+%
+At the same time, it provides much better security than competing symmetric-key
+authentication protocols, such as the popular OATH TOTP protocol (e.g. Google
+Authenticator), which involves much shorter OTPs.
+%
+Protocols based on public-key cryptography, such as U2F, inherently provide
+better security than their symmetric-key counterparts because they do not
+involve shared secrets.
+%
+Nevertheless, there are a number of reasons to favor symmetric-key techniques,
+and Yubico OTP in particular. For one, U2F requires client-side support, and as
+of this writing, the only major browser that supports it is Google Chrome.
+%
+\cpnote{Another advantage of symmetric key is that the hardware tokens can be a
+lot simpler. We don't need ANY randomness for our protocols. Does U2F need
+randomness?}
+\cpnote{Could we make the argument that symmetric key is orders of magnitude
+faster, therefore better than public key for this setting? But YubiKeys already
+do a variety of public key operations, so I'm not convinced.}
+
+The problem of having a shared secret may be partially overcome by using
+a \emph{hardware security module} (HSM) to manage the state associated with each
+token. The state is encrypted using a key that (ideally) never leaves the HSM
+boundary. To validate an OTP, it and the encrypted state are given to the HSM,
+which decrypts the state, validates the OTP, then updates the state.
+%
+Yubico manufactures a low-cost, market-grade HSM, called \emph{YubiHSM} for this
+purpose. It can be used to provide an authentication service similar to
+YubiCloud.
+
+\heading{Security of Yubico OTP.}
+This work aims to clarify the security that Yubico OTP provides and doesn't
+provide. Towards a formal treatment, we consider its security in the adversarial
+model of Bellare-Rogaway for entity authentication~\cite{bellare1993entity}.
+%
+In this model, the adversary is assumed to utterly control the network and so is
+responsible for delivering messages between players in the protocol.
+%
+It may inject, delay, reorder, replay, and drop messages at will.
+%
+The players are the set of \emph{clients}, the set of \emph{servers} requesting
+authentication of the clients, and the \emph{authority} that verifies OTPs
+(e.g., YubiCloud).
+%
+Perhaps unintuitively, we also model the set of \emph{tokens} (i.e. the YubiKeys)
+managed by the authority as players in the protocol. (Hence, the adversary is
+also responsible for ``delivering'' the OTP to the client.) This allows us to
+capture the idea that the protocol is ``initiated'' by the client physically
+interacting with the token.
+
+We find no inherent flaws in the protocol when each YubiKey is used to
+authenticate to \emph{at most one server}. In fact, we are able to prove under
+standard assumptions that the probability that an adversary is able to forge an
+OTP to the authority is birthday bounded.
+%
+However, if a YubiKey is used with more than one server, than Yubico OTP
+\emph{does not suffice for security in the Bellare-Rogaway model}.
+%
+In particular, an OTP intended for authenticating the client to one server can
+be intercepted by the adversary and rerouted to another service that accepts the
+same token as a credential.
+%
+This is a severe restriction, one that might the reader to consider a weaker
+adversary. n particular, the Bellare-Rogaway model does not reflect the
+difficulty of intercepting an OTP and attempting to use it for a different
+session before the legitimate session completes. But this is a difficult thing
+to formalize, and security would depend crucially on the latency between
+communicants. Hence, we opt for for a stronger security posture.
+
+\heading{OTP1.}
+On the positive side, we suggest a simple modification to the protocol that
+offers a defense against rerouting attacks. In our protocol, the private
+identity of the token is replaced with the identity of the service requesting
+authentication, allowing us to cryptographically bind the service to the OTP.
+%
+The protocol requires no modification to the token itself, and adds no
+additional overhead (computational, communication, or bandwidth). However, it
+does require some client-side support. This is unavoidable, since in order to
+bind the OTP to the service, it is necessary to send the token a message. First
+the client's system must be capable of talking to smart cards. (We find that
+both Ubuntu 16.04 and MacOS X Sierra do so without any additional
+configuration.) \cpnote{I'm not sure about Windows.} Second, it requires the
+installation of a small amount of code.
+
+\heading{OTP2.}
+We also take the liberty of rethinking the design of the YubiKey altogether.
+Ours results so far point to a new modality for token-based authentication.
+Either the token itself or the OTPs it emits must be bound to the service
+requesting authentication. The latter is preferable, since it allows us to use a
+single token for many services.
+%
+\emph{The mechanism that makes this possible also permits applications beyond
+authentication.}
+%
+We propose a modified token that supports a number \emph{modes of operation},
+including simple OTP-based authentication, request-bounded OTP-based
+authentication (the implicit goal of OTP1), message authentication, and
+encryption.
+%
+We consider a few concrete applications. For example, we show a way to provide
+two-factor authentication secure against dictionary attacks on the client's
+password with the same round complexity as the simple OTP protocol and with very
+little computational overhead. We also suggest an extension to TLS that provides
+client authentication via hardware tokens.
+
+Our proposal will require modifying the YubiKey firmware at a minimum. We
+suspect, however, that it can be implemented without modifying the hardware.
+
+
+\cpnote{Organization of the rest of the write up: Section 2 describes the tokens
+(YubiKey and YubiHSM) and their functionalities. Section 3 describes the
+OTP protocol and its security. Section 4 presents OTP1, and Section 5 presents
+OTP2 and applications.}
+
+\subsection{Related work}
+\input{related}
