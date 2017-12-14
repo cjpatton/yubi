@@ -4,19 +4,18 @@
 \label{sec:related}
 
 Despite their many pitfalls, passwords have long been understood as the most
-practical trade-off between security and usability for authenticating users of
-computer systems.
+practical trade-off between security and usability for authentication.
 %
-Early adopters of password-based authentication recognized the need to store
-passwords securely~\cite{morris1979password}, yet no manner of storage is
-adequate if the password can easily be guessed. This has lead system
-admnistrators to enforce policies for selecting passwords (for example, adding
-special characters, or requiring a minimum length) and periodically changing
-them.  In their landmark user study, Adams and Sasse~\cite{adams1999users} point
-out that, paradoxically, these policies \emph{adversely} affect security,
-because they drive users to choose weak passwords, or even to write them down.
-In light of this finding, the usability of any technique to enhance
-password-based authentication has become a first-class concern.
+Early adopters recognized the need to store passwords
+securely~\cite{morris1979password}, yet no manner of storage is adequate if the
+password can easily be guessed. This has lead system admnistrators to enforce
+policies for selecting passwords (for example, adding special characters, or
+requiring a minimum length) and periodically changing them.  In their landmark
+user study, Adams and Sasse~\cite{adams1999users} point out that, paradoxically,
+these policies \emph{adversely} affect security, because they drive users to
+choose weak passwords, or even to write them down.  In light of this finding,
+the usability of any technique to enhance password-based authentication has
+become a first-class concern.
 
 A number of approaches to supplement (or supplant) passwords have been proposed,
 each having unique barriers to adoption. Bonneau et al.~\cite{bonneau2012quest}
@@ -24,11 +23,11 @@ point out that \emph{deployability} of the mechanism is a critical factor.
 %
 In recent years, two-factor authentication (2FA) has emerged as an approach with
 a reasonable trade-off between security, usability, and deployability.
-Typically the second factor is realized using soemthing in possession of the
+Typically the second factor is realized using something in possession of the
 user, such as a cell phone or a dedicated hardware token.
 %
-The simplest protocol works as follows. The server associates a unique secret to
-each client. When the client requests a log in, the server uses the secret and
+The simplest protocol works as follows. The authority associates a unique secret to
+each client. When the client requests a log in, the authority uses the secret and
 current time to generate a short sequence (6-8) of digits, which it sends to the
 client's phone. Both this sequence and the password are needed to log in. Each
 ``one-time password'' (OTP) is valid only for a short time (typically 30
@@ -39,9 +38,9 @@ SS7~\cite{engel2008locating} have been exploited to intercept OTPs in 2FA
 systems used for bank accounts~\cite{schwachstelle}.)
 
 An improvement came with a pair of protocols by OATH, the Initiative for Open
-Authentication. The first, TOTP~\cite{rfc6238}, works as above, except the
-client's phone (or token) shares a key with the server. This change affectively
-removes the SMS attack vector.
+Authentication. The first of these is called TOTP~\cite{rfc6238} and works as
+above, except the client's phone (or token) shares a key with the server. This
+change affectively removes the SMS attack vector.
 %
 TOTP enjoys wide adoption; a prominent example is the Google Authenticator app
 for Android, iOS and other platforms~\cite{googleauth}. The second,
@@ -66,7 +65,7 @@ Of courese, public-key cryptography affords the opportunity to avoid this
 drawback altogether. The FIDO Allience, in collaboration with a number of
 industry leaders, has developed the universal two-factor (U2F)
 protocol~\cite{u2f}, which usess a private key stored on a hardware token; the
-corresponding pulbic key is stored on the server.
+corresponding public key is stored on the server.
 %
 YubiKeys support this more sophisticated protocol in addition to Yubico OTP. The
 latter has the distinct advantage of being easier to deploy; U2F requires the
@@ -76,8 +75,8 @@ between the token and the server. Yubico OTP requires no browser support.
 Due to its simplicity, Yubico OTP remains an important industry player. As such,
 it has received a respectable amount of attention in academia.
 %
-The first formal tratment of the full protocol was provided by K\"unnemann and
-Steel~\cite{kuennemann2012yubisecure}; however, their result is limited in a
+The first and only formal treatment of the protocol was provided by K\"unnemann and
+Steel~\cite{kuennemann2012yubisecure}, but their result is limited in a
 fundamental way. They work in a restricted adversarial model, called the
 \emph{Dolev-Yao} model~\cite{herzog2005computational}. Roughly speaking, they
 prove that no Dolev-Yao adversary seeing an unbounded number of OTPs can recover
