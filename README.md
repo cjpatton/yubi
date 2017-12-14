@@ -1,3 +1,16 @@
+Building a better YubiKey
+=========================
+
+Hardware tokens are pretty good at providing two-factor authentication. But as
+if you're going to carry around a YubiKey in your pocket all the time, shouldn't
+it do more? This directory contains PDF `yubi.pdf`, the beginnings of a
+technical report analyzing the security of the symmetric-key YubiKey protocol,
+and a proposal for making the protocol more flexible. It also contains a
+reference implementation in Python.
+
+Reference implementation of OTP2
+================================
+
 This directory contains a Python implementation of the OTP1 and OTP2 protocols
 described in the text. The main module is `otp.py`; the remaining files are unit
 and integration tests. Note that `otp_test.py` will fail unless you have a YubiKey
@@ -19,7 +32,7 @@ Now you should be able to run the unit tests:
   $ python otp_test.py
 ```
 Note that the **test will fail** unless you have a YubiKey plugged in that is
-configured properly. To skip this test, comment out line `otp_test.py:109` thzat
+configured properly. To skip this test, comment out line `otp_test.py:109` that
 reads `test1()`; `test2()` should pass even without a YubiKey.
 
 Running `softkey.py`
