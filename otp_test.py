@@ -114,9 +114,18 @@ def test3():
 
     try:
         key = yubico.find_yubikey(debug=False)
-        chal = '\x00' * 64 # longest permitted challenge
-        resp = key.challenge_response(chal, mode='HMAC', slot=2, may_block=True)
-        print resp.encode('hex'), len(resp)
+        print key.challenge_response(('\x00' * 63) + '\x01',
+                mode='HMAC', slot=2, may_block=True).encode('hex')
+        print key.challenge_response(('\x00' * 62) + '\x01',
+                mode='HMAC', slot=2, may_block=True).encode('hex')
+        print key.challenge_response(('\x00' * 62) + '\x01\x00',
+                mode='HMAC', slot=2, may_block=True).encode('hex')
+        print key.challenge_response('',
+                mode='HMAC', slot=2, may_block=True).encode('hex')
+        print key.challenge_response('\x00',
+                mode='HMAC', slot=2, may_block=True).encode('hex')
+        print key.challenge_response('\x00'*64,
+                mode='HMAC', slot=2, may_block=True).encode('hex')
 
     except yubico.yubico_exception.YubicoError as e:
         print e.reason
