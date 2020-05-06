@@ -105,7 +105,25 @@ def test2():
     frame = otp.Frame2.from_enciphered(bc, h, enciphered_frame, None)
     assert frame.payload == '\x00' * (bc.block_size - 4)
 
+
+def test3():
+    '''Tests the HMAC-SHA1.
+
+    Requires a YubiKey with OTP challenge-response configured in slot 2.
+    '''
+
+    try:
+        key = yubico.find_yubikey(debug=False)
+        chal = '\x00' * 64 # longest permitted challenge
+        resp = key.challenge_response(chal, mode='HMAC', slot=2, may_block=True)
+        print resp.encode('hex'), len(resp)
+
+    except yubico.yubico_exception.YubicoError as e:
+        print e.reason
+        sys.exit(1)
+
 if __name__ == '__main__':
-    test1()
-    test2()
+    #test1()
+    #test2()
+    test3()
     print "pass"
